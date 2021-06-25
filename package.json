@@ -1,0 +1,25 @@
+{
+  "private": "true",
+  "lint-staged": {
+    "composer.json": [
+      "composer normalize"
+    ],
+    "*": [
+      "prettier --write"
+    ],
+    "*.php": [
+      "composer format"
+    ]
+  },
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^12",
+    "@commitlint/config-conventional": "^12",
+    "@prettier/plugin-php": "*",
+    "husky": "^6",
+    "lint-staged": "^11",
+    "prettier": "^2"
+  }
+}

@@ -1,0 +1,20 @@
+version: "3.9"
+
+networks:
+  dl2-sdl-network:
+    name: dl2-sdl-network
+
+x-dl2-sdl-docker-base: &x-dl2-sdl-docker-base
+  networks:
+    - dl2-sdl-network
+  restart: on-failure
+
+services:
+  dl2-sdl:
+    <<: *x-dl2-sdl-docker-base
+    build:
+      context: ./.docker/dl2-sdl
+    container_name: dl2-sdl
+    volumes:
+      - ./:/var/www/html/
+      - ./.docker/dl2-sdl/php.ini:/usr/local/etc/php/conf.d/99-overrides.ini

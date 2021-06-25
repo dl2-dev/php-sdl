@@ -1,0 +1,23 @@
+*.cache
+*.lcov
+*.log
+/.cache
+/.dynamodb
+/.env
+/.idea
+/.php-cs-fixer.php
+/.scannerwork
+/.vscode
+/*.xml
+/cache
+/coverage
+/node_modules
+/res/*.php
+/res/*.json
+/tmp
+/vendor
+
+# exceptions
+!*.dist.*
+
+61069345172

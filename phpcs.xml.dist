@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<ruleset name="Coding Standards">
+  <description>Coding Standards</description>
+
+  <file>src</file>
+  <file>tests</file>
+
+  <arg name="colors" />
+  <arg value="p" />
+
+  <rule ref="Generic.PHP.ForbiddenFunctions">
+    <properties>
+      <property name="forbiddenFunctions" type="array">
+        <element key="_" value="gettext" />
+        <element key="chop" value="rtrim" />
+        <element key="close" value="closedir" />
+        <element key="create_function" value="null" />
+        <element key="delete" value="null" />
+        <element key="die" value="exit" />
+        <element key="diskfreespace" value="disk_free_space" />
+        <element key="doubleval" value="floatval" />
+        <element key="empty" value="null" />
+        <element key="fputs" value="fwrite" />
+        <element key="gzputs" value="gzwrite" />
+        <element key="i18n_convert" value="mb_convert_encoding" />
+        <element key="i18n_discover_encoding" value="mb_detect_encoding" />
+        <element key="i18n_http_input" value="mb_http_input" />
+        <element key="i18n_http_output" value="mb_http_output" />
+        <element key="i18n_internal_encoding" value="mb_internal_encoding" />
+        <element key="i18n_ja_jp_hantozen" value="mb_convert_kana" />
+        <element key="i18n_mime_header_decode" value="mb_decode_mimeheader" />
+        <element key="i18n_mime_header_encode" value="mb_encode_mimeheader" />
+        <element key="ini_alter" value="ini_set" />
+        <element key="is_double" value="is_float" />
+        <element key="is_integer" value="is_int" />
+        <element key="is_long" value="is_int" />
+        <element key="is_null" value="null" />
+        <element key="is_real" value="is_float" />
+        <element key="is_writeable" value="is_writable" />
+        <element key="join" value="implode" />
+        <element key="key_exists" value="array_key_exists" />
+        <element key="magic_quotes_runtime" value="set_magic_quotes_runtime" />
+        <element key="mbstrcut" value="mb_strcut" />
+        <element key="mbstrlen" value="mb_strlen" />
+        <element key="mbstrpos" value="mb_strpos" />
+        <element key="mbstrrpos" value="mb_strrpos" />
+        <element key="mbsubstr" value="mb_substr" />
+        <element key="php_errormsg" value="error_get_last" />
+        <element key="pos" value="current" />
+        <element key="print" value="printf" />
+        <element key="recode" value="recode_string" />
+        <element key="show_source" value="highlight_file" />
+        <element key="sizeof" value="count" />
+        <element key="strchr" value="strstr" />
+      </property>
+    </properties>
+  </rule>
+
+  <rule ref="PSR2"></rule>
+  <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
+  <rule ref="Generic.Commenting.Todo" />
+  <rule ref="Generic.ControlStructures.InlineControlStructure" />
+  <rule ref="Generic.Formatting.DisallowMultipleStatements" />
+  <rule ref="Generic.Formatting.SpaceAfterCast" />
+  <rule ref="Generic.NamingConventions.ConstructorName" />
+  <rule ref="Generic.PHP.DeprecatedFunctions" />
+  <rule ref="Generic.PHP.LowerCaseKeyword" />
+  <rule ref="Generic.Strings.UnnecessaryStringConcat" />
+  <rule ref="Generic.WhiteSpace.IncrementDecrementSpacing" />
+  <rule ref="Zend.Files.ClosingTag" />
+
+  <rule ref="Generic.Files.LineLength">
+    <properties>
+      <property name="lineLimit" value="140" />
+      <property name="absoluteLineLimit" value="0" />
+    </properties>
+  </rule>
+</ruleset>
