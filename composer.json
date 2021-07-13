@@ -1,7 +1,7 @@
 {
   "name": "dl2/sdl",
   "description": "Collection of common and useful assets",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "Unlicense",
   "require": {
     "php": "^8.0"

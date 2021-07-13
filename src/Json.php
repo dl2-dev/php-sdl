@@ -14,7 +14,7 @@ final class Json
     private SplFixedArray $flags;
     private mixed $json;
 
-    public function __construct()
+    public function __construct(mixed $json = null)
     {
         $this->flags = new SplFixedArray(2);
 
@@ -23,6 +23,10 @@ final class Json
             ->setDecodeFlags(JSON_BIGINT_AS_STRING)
             ->setEncodeFlags(JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION)
         ;
+
+        if ($json) {
+            $this->decode($this->encode($json));
+        }
     }
 
     public function __get(string $who): mixed
