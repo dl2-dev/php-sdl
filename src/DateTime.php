@@ -3,6 +3,7 @@
 namespace DL2\SDL;
 
 use DateInterval;
+use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use JsonSerializable;
@@ -38,7 +39,7 @@ final class DateTime implements JsonSerializable
     public const TIMEZONE         = 'America/Sao_Paulo';
     public const W3C              = DateTimeInterface::W3C;
 
-    private \DateTime $datetime;
+    private DateTimeImmutable $datetime;
     private string $format = self::ISO8601_MYSQL;
 
     /**
@@ -51,12 +52,12 @@ final class DateTime implements JsonSerializable
             $datetime = "@{$datetime}";
         }
 
-        if (\is_object($datetime)) {
+        if ($datetime instanceof DateTimeInterface) {
             $datetime = $datetime->format(self::ISO8601);
         }
 
         try {
-            $this->datetime = new \DateTime($datetime, self::mixedToTimeZone($timezone));
+            $this->datetime = new DateTimeImmutable($datetime, self::mixedToTimeZone($timezone));
         } catch (Throwable $err) {
             throw new DateTimeException($err->getMessage());
         }
@@ -67,11 +68,11 @@ final class DateTime implements JsonSerializable
         /** @var mixed */
         $result = \call_user_func_array([$this->datetime, $method], $params);
 
-        if ('get' === substr($method, 0, 3)) {
-            return $result;
+        if ($result instanceof DateTimeInterface) {
+            return $this->create($result);
         }
 
-        return $this;
+        return $result;
     }
 
     public function __toString(): string
@@ -80,13 +81,23 @@ final class DateTime implements JsonSerializable
     }
 
     /**
+     * @param DateInterval|string $spec
+     */
+    public function add($spec): self
+    {
+        return $this->create($this->datetime->add(self::mixedToDateInterval($spec)));
+    }
+
+    /**
      * @param ?DateTimeZone|string $timezone
      */
     public static function createFromFormat(string $format, string $datetime, $timezone = null): self
     {
         $timezone = self::mixedToTimeZone($timezone);
-        $datetime = \DateTime::createFromFormat($format, $datetime, $timezone);
-        $errors   = \DateTime::getLastErrors();
+
+        /** @var DateTimeImmutable */
+        $datetime = DateTimeImmutable::createFromFormat($format, $datetime, $timezone);
+        $errors   = DateTimeImmutable::getLastErrors();
 
         if (\count($errors['warnings'])) {
             throw new DateTimeException($errors['warnings']);
@@ -104,7 +115,7 @@ final class DateTime implements JsonSerializable
      */
     public function diff($target = null): DateInterval
     {
-        return $this->datetime->diff((new self($target ?? Runtime::startedAt()))->datetime);
+        return $this->datetime->diff($this->create($target ?? Runtime::startedAt())->datetime);
     }
 
     public function format(?string $format = null): string
@@ -117,11 +128,44 @@ final class DateTime implements JsonSerializable
         return $this->format();
     }
 
+    public function modify(string $modifier): self
+    {
+        return $this->create($this->datetime->modify($modifier));
+    }
+
     public function setFormat(string $format): self
     {
         $this->format = $format;
 
         return $this;
+    }
+
+    /**
+     * @param DateInterval|string $spec
+     */
+    public function sub($spec): self
+    {
+        return $this->create($this->datetime->sub(self::mixedToDateInterval($spec)));
+    }
+
+    /**
+     * @param DateTimeInterface|int|string $datetime
+     */
+    private function create($datetime): self
+    {
+        return new self($datetime, $this->getTimezone());
+    }
+
+    /**
+     * @param DateInterval|string $spec
+     */
+    private static function mixedToDateInterval($spec): DateInterval
+    {
+        if (\is_string($spec)) {
+            $spec = new DateInterval(strtoupper($spec));
+        }
+
+        return $spec;
     }
 
     /**
