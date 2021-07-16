@@ -33,8 +33,6 @@ final class Runtime
 
     /**
      * @param class-string<\Throwable> $class
-     *
-     * @psalm-suppress InvalidReturnType
      */
     public static function wrapError(callable $fn, ?string $class): mixed
     {
@@ -46,7 +44,7 @@ final class Runtime
             return $fn();
         } catch (ErrorException $err) {
             if ($class) {
-                throw new $class($err->getMessage(), $err->getCode());
+                $err = new $class($err->getMessage(), $err->getCode());
             }
 
             throw $err;
