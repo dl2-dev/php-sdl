@@ -2,10 +2,12 @@
 
 namespace DL2\SDL;
 
+use IteratorAggregate;
 use JsonException;
 use SplFixedArray;
+use Traversable;
 
-final class Json
+final class Json implements IteratorAggregate
 {
     private const FLAGS_DECODE = 1;
     private const FLAGS_ENCODE = 0;
@@ -65,6 +67,11 @@ final class Json
     public function getFilename(): ?string
     {
         return $this->filename;
+    }
+
+    public function getIterator(): Traversable
+    {
+        yield from (array) $this->json;
     }
 
     public static function read(string $filename, int $flags = 0): self
