@@ -3,6 +3,7 @@
 namespace DL2\SDL;
 
 use ErrorException;
+use Throwable;
 
 final class Runtime
 {
@@ -32,7 +33,7 @@ final class Runtime
     }
 
     /**
-     * @param class-string<\Throwable> $class
+     * @param class-string<Throwable> $class
      */
     public static function wrapError(callable $fn, ?string $class): mixed
     {

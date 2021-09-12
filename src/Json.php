@@ -12,9 +12,9 @@ final class Json implements IteratorAggregate
     private const FLAGS_DECODE = 1;
     private const FLAGS_ENCODE = 0;
 
-    private ?string $filename;
+    private ?string $filename = null;
     private SplFixedArray $flags;
-    private mixed $json;
+    private mixed $json = null;
 
     public function __construct(mixed $json = null)
     {
@@ -54,6 +54,11 @@ final class Json implements IteratorAggregate
         return json_encode($data ?? $this->json, $this->getEncodeFlags($flags));
     }
 
+    public static function fromString(string $json, int $flags = 0): self
+    {
+        return (new self())->setDecodeFlags($flags)->decode($json);
+    }
+
     public function getDecodeFlags(int $flags = 0): int
     {
         return $this->getFlags(self::FLAGS_DECODE) | $flags;
@@ -71,17 +76,17 @@ final class Json implements IteratorAggregate
 
     public function getIterator(): Traversable
     {
-        yield from (array) $this->json;
+        yield from (array) $this->getJson();
+    }
+
+    public function getJson(): mixed
+    {
+        return $this->json;
     }
 
     public static function read(string $filename, int $flags = 0): self
     {
-        // prettier-ignore
-        return (new self())
-            ->setDecodeFlags($flags)
-            ->setFilename($filename)
-            ->decode(FileObject::read($filename))
-        ;
+        return self::fromString(FileObject::read($filename))->setFilename($filename);
     }
 
     public function save(?string $filename = null, mixed $data = null, int $flags = 0): self
