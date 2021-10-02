@@ -43,8 +43,8 @@ final class DateTime implements JsonSerializable
     private string $format = self::ISO8601_MYSQL;
 
     /**
-     * @param DateTimeInterface|int|string $datetime
-     * @param ?DateTimeZone|string         $timezone
+     * @param DateTime|DateTimeInterface|int|string $datetime
+     * @param ?DateTimeZone|string                  $timezone
      */
     public function __construct($datetime = 'now', $timezone = self::TIMEZONE)
     {
@@ -52,7 +52,7 @@ final class DateTime implements JsonSerializable
             $datetime = "@{$datetime}";
         }
 
-        if ($datetime instanceof DateTimeInterface) {
+        if ($datetime instanceof DateTimeInterface || $datetime instanceof self) {
             $datetime = $datetime->format(self::ISO8601);
         }
 
@@ -111,7 +111,7 @@ final class DateTime implements JsonSerializable
     }
 
     /**
-     * @param ?DateTimeInterface|int|string $target
+     * @param ?DateTime|DateTimeInterface|int|string $target
      */
     public function diff($target = null): DateInterval
     {
@@ -149,7 +149,7 @@ final class DateTime implements JsonSerializable
     }
 
     /**
-     * @param DateTimeInterface|int|string $datetime
+     * @param DateTime|DateTimeInterface|int|string $datetime
      */
     private function create($datetime): self
     {
