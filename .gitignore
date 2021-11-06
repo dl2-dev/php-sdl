@@ -1,4 +1,5 @@
 *.cache
+*.devbox
 *.lcov
 *.log
 /.cache
@@ -12,12 +13,10 @@
 /cache
 /coverage
 /node_modules
-/res/*.php
 /res/*.json
+/res/*.php
 /tmp
 /vendor
 
 # exceptions
 !*.dist.*
-
-61069345172

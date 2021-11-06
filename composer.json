@@ -1,12 +1,15 @@
 {
   "name": "dl2/sdl",
   "description": "Collection of common and useful assets",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "license": "Unlicense",
   "require": {
-    "php": "^8.0"
+    "php": "^8.0 || ^8.1"
   },
   "require-dev": {
+    "ext-bcmath": "*",
+    "ext-mbstring": "*",
+    "ext-xml": "*",
     "ergebnis/composer-normalize": "^2",
     "friendsofphp/php-cs-fixer": "^3",
     "phpunit/phpunit": "^9",
@@ -55,5 +58,8 @@
       "@lint",
       "@phpunit"
     ]
+  },
+  "suggests": {
+    "ext-bcmath": "required by the 'Number' class"
   }
 }
