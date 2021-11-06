@@ -6,10 +6,7 @@ use RuntimeException;
 
 class DateTimeException extends RuntimeException
 {
-    /**
-     * @param array|string $error
-     */
-    public function __construct($error)
+    public function __construct(array|string $error)
     {
         $error = (array) $error;
 

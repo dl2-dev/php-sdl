@@ -1,7 +1,7 @@
 {
   "name": "dl2/sdl",
   "description": "Collection of common and useful assets",
-  "version": "1.5.0",
+  "version": "2.1.0",
   "license": "Unlicense",
   "require": {
     "php": "^8.0 || ^8.1"
@@ -14,7 +14,7 @@
     "friendsofphp/php-cs-fixer": "^3",
     "phpunit/phpunit": "^9",
     "squizlabs/php_codesniffer": "^3",
-    "vimeo/psalm": "^4@dev"
+    "vimeo/psalm": "dev-master"
   },
   "config": {
     "sort-packages": true
@@ -51,7 +51,7 @@
     "php-cs-fixer": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --config=.php-cs-fixer.dist.php -v",
     "phpcbf": "phpcbf -sn",
     "phpcs": "phpcs",
-    "phpunit": "phpdbg -qrr -dzend.assertions=1 -dassert.exception=1 vendor/bin/phpunit",
+    "phpunit": "phpunit",
     "psalm": "psalm --no-cache --no-progress --output-format=compact",
     "psalter": "psalter --no-cache --issues=all",
     "test": [
