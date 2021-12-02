@@ -2,7 +2,7 @@
 <psalm errorLevel="1" findUnusedPsalmSuppress="true" forbidEcho="true" resolveFromConfigFile="true" useDocblockPropertyTypes="true">
   <projectFiles>
     <directory name="src" />
-    <directory name="tests" />
+
     <ignoreFiles>
       <directory name="vendor" />
     </ignoreFiles>
@@ -11,6 +11,12 @@
   <plugins> </plugins>
 
   <issueHandlers>
+    <InaccessibleMethod>
+      <errorLevel type="suppress">
+        <directory name="tests" />
+      </errorLevel>
+    </InaccessibleMethod>
+
     <PropertyNotSetInConstructor>
       <errorLevel type="suppress">
         <directory name="src" />
@@ -18,12 +24,10 @@
       </errorLevel>
     </PropertyNotSetInConstructor>
 
-    <!--
-    <ReservedWord>
+    <UnusedMethodCall>
       <errorLevel type="suppress">
-        <directory name="src" />
+        <directory name="tests" />
       </errorLevel>
-    </ReservedWord>
-    -->
+    </UnusedMethodCall>
   </issueHandlers>
 </psalm>

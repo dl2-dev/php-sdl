@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use JsonSerializable;
+use Stringable;
 use Throwable;
 
 /**
@@ -15,12 +16,12 @@ use Throwable;
  * @method DateTimeZone getTimezone()
  * @method DateTime     setISODate(int $year, int $week, ?int $dayOfWeek)
  * @method DateTime     setTime(int $hour, int $minute, ?int $second, ?int $microsecond)
- * @method DateTime     setTimezone(DateTimeZone $timezone)
  */
-final class DateTime implements JsonSerializable
+final class DateTime implements JsonSerializable, Stringable
 {
     public const ATOM             = DateTimeInterface::ATOM;
     public const COOKIE           = DateTimeInterface::COOKIE;
+    public const DATE             = 'Y-m-d';
     public const ISO8601          = DateTimeInterface::ISO8601;
     public const ISO8601_MYSQL    = 'Y-m-d H:i:s';
     public const RFC1036          = DateTimeInterface::RFC1036;
@@ -32,16 +33,12 @@ final class DateTime implements JsonSerializable
     public const RFC822           = DateTimeInterface::RFC822;
     public const RFC850           = DateTimeInterface::RFC850;
     public const RSS              = DateTimeInterface::RSS;
+    public const TIME             = 'H:i:s';
     public const TIMEZONE         = 'America/Sao_Paulo';
     public const W3C              = DateTimeInterface::W3C;
-    private const CURR_DAY_FMT    = 'd';
-    private const LAST_DAY_FMT    = 't';
 
     private DateTimeImmutable $datetime;
-
-    /** @var self::CURR_DAY_FMT|self::LAST_DAY_FMT */
-    private string $dayFormat = self::CURR_DAY_FMT;
-    private string $format    = self::ISO8601_MYSQL;
+    private string $format = self::ISO8601_MYSQL;
 
     public function __construct(
         self|DateTimeInterface|int|string $datetime = 'now',
@@ -57,12 +54,12 @@ final class DateTime implements JsonSerializable
 
         try {
             $this->datetime = new DateTimeImmutable($datetime, self::mixedToTimeZone($timezone));
-        } catch (Throwable $err) {
-            throw new DateTimeException($err->getMessage());
+        } catch (Throwable $e) {
+            throw new DateTimeException($e->getMessage(), $e->getCode());
         }
     }
 
-    public function __call(string $method, array $params): mixed
+    public function __call(string $method, array $params): int|DateTimeZone|self
     {
         /** @var mixed */
         $result = \call_user_func_array([$this->datetime, $method], $params);
@@ -71,6 +68,7 @@ final class DateTime implements JsonSerializable
             return $this->create($result);
         }
 
+        /** @var DateTimeZone|int */
         return $result;
     }
 
@@ -85,30 +83,11 @@ final class DateTime implements JsonSerializable
     }
 
     /**
-     * @psalm-param positive-int|numeric-string $added
+     * @psalm-param positive-int $spec
      */
-    public function addMonths(int|string $added = 1, bool $strict = true): self
+    public function addMonths(int $spec = 1): self
     {
-        $next = $this->modify("+{$added}month");
-
-        if (!$strict) {
-            return $next;
-        }
-
-        if ($next->format(self::CURR_DAY_FMT) === $this->format(self::CURR_DAY_FMT)) {
-            return $next;
-        }
-
-        /** @psalm-suppress InvalidOperand */
-        $next = $next->setDate(null, (int) ($this->format('m') + $added), 1);
-
-        if (self::CURR_DAY_FMT === $this->dayFormat
-            && $this->format(self::CURR_DAY_FMT) > $next->format(self::CURR_DAY_FMT)
-        ) {
-            return $next->setDate(null, null, self::LAST_DAY_FMT);
-        }
-
-        return $next->setDate(null, null, $this->dayFormat);
+        return $this->changeMonths($spec);
     }
 
     public static function createFromFormat(
@@ -122,12 +101,14 @@ final class DateTime implements JsonSerializable
         $datetime = DateTimeImmutable::createFromFormat($format, $datetime, $timezone);
         $errors   = DateTimeImmutable::getLastErrors();
 
+        // @codeCoverageIgnoreStart
         if (\count($errors['warnings'])) {
-            throw new DateTimeException($errors['warnings']);
+            throw new DateTimeException($errors['warnings'], 0);
         }
+        // @codeCoverageIgnoreEnd
 
         if (\count($errors['errors'])) {
-            throw new DateTimeException($errors['errors']);
+            throw new DateTimeException($errors['errors'], 0);
         }
 
         return new self($datetime, $timezone);
@@ -154,11 +135,19 @@ final class DateTime implements JsonSerializable
     }
 
     /**
-     * @template TParam as int|numeric-string|null
+     * @psalm-param positive-int $spec
+     */
+    public function removeMonths(int $spec = 1): self
+    {
+        return $this->changeMonths($spec * -1);
+    }
+
+    /**
+     * @template TParam as int|string|null
      *
-     * @psalm-param TParam                                             $year
-     * @psalm-param TParam                                             $month
-     * @psalm-param self::CURR_DAY_FMT|self::LAST_DAY_FMT|TParam $day
+     * @psalm-param TParam $year
+     * @psalm-param TParam $month
+     * @psalm-param TParam $day
      */
     public function setDate(
         int|string|null $year = null,
@@ -167,13 +156,11 @@ final class DateTime implements JsonSerializable
     ): self {
         [$y, $m, $d] = explode('.', $this->format('Y.m.d'));
 
-        if (self::LAST_DAY_FMT === $day || self::CURR_DAY_FMT === $day) {
-            $day = $this->format($day);
-        }
+        $year  ??= $y;
+        $month ??= $m;
+        $day   ??= $d;
 
-        return $this->create(
-            $this->datetime->setDate((int) ($year ?? $y), (int) ($month ?? $m), (int) ($day ?? $d))
-        );
+        return $this->create($this->datetime->setDate((int) $year, (int) $month, (int) $day));
     }
 
     public function setFormat(string $format): self
@@ -183,14 +170,39 @@ final class DateTime implements JsonSerializable
         return $this;
     }
 
+    public function setTimezone(null|DateTimeZone|string $timezone = self::TIMEZONE): self
+    {
+        return $this->create($this->datetime->setTimezone(self::mixedToTimeZone($timezone)));
+    }
+
     public function sub(DateInterval|string $spec): self
     {
         return $this->create($this->datetime->sub(self::mixedToDateInterval($spec)));
     }
 
+    private function changeMonths(int $spec): self
+    {
+        $spec = "{$spec}month";
+        $next = $this->modify($spec);
+        $day  = $next->format('d');
+
+        if ($this->format('d') === $day) {
+            return $next;
+        }
+
+        $next = $this->setDate(day: 1)->modify($spec);
+        $day  = $next->format('t');
+
+        if ($this->format('t') > $day) {
+            $next = $next->setDate(day: $day);
+        }
+
+        return $next;
+    }
+
     private function create(self|DateTimeInterface|int|string $datetime): self
     {
-        return new self($datetime, $this->getTimezone());
+        return (new self($datetime, $this->getTimezone()))->setFormat($this->format);
     }
 
     private static function mixedToDateInterval(DateInterval|string $spec): DateInterval
@@ -209,7 +221,11 @@ final class DateTime implements JsonSerializable
         }
 
         if (\is_string($timezone)) {
-            $timezone = new DateTimeZone($timezone);
+            try {
+                $timezone = new DateTimeZone($timezone);
+            } catch (Throwable $e) {
+                throw new DateTimeException($e->getMessage(), $e->getCode());
+            }
         }
 
         return $timezone;

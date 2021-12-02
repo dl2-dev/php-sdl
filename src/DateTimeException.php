@@ -6,10 +6,10 @@ use RuntimeException;
 
 class DateTimeException extends RuntimeException
 {
-    public function __construct(array|string $error)
+    public function __construct(array|string $e, int|string $code)
     {
-        $error = (array) $error;
+        $e = (array) $e;
 
-        parent::__construct((string) array_shift($error));
+        parent::__construct((string) array_shift($e), (int) $code);
     }
 }

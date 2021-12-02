@@ -4,18 +4,19 @@ namespace DL2\SDL;
 
 use ArithmeticError;
 use ParseError;
+use Stringable;
 
 /**
  * @psalm-type TBCMathFn = "add"|"div"|"mod"|"mul"|"pow"|"sub"
  * @psalm-immutable
  */
-final class Number
+final class Number implements Stringable
 {
     private const COMMON_ERRORS      = ['syntax error,'];
     private const REGEXP_VALID_INPUT = '/^([0-9]|\s|\.|\-|\*|\/|\%|\^|\+|\(|\))*?$/';
 
     /** @var numeric-string */
-    private string $value = '0';
+    private string $value;
 
     /**
      * ctor.
@@ -24,21 +25,20 @@ final class Number
      * as '10+5' or '10*(2 +2)', but note that using this approach, we apply
      * bc functions **after** PHP's internal calculation.
      */
-    public function __construct(private int|float|null|self|string $input = null, private int $scale = 2)
+    public function __construct(private int|float|self|string $input = 0, private int $scale = 2)
     {
-        if ($input instanceof self) {
-            $input = $input->floatval();
-        }
-
         try {
-            $this->value = $this->normalizeInput($input, true);
-        } catch (ParseError $err) {
-            $msg = trim(str_replace(self::COMMON_ERRORS, '', $err->getMessage()));
+            $this->value = $this->format($this->normalizeInput($input));
+        } catch (ParseError $e) {
+            $msg = trim(str_replace(self::COMMON_ERRORS, '', $e->getMessage()));
 
             throw new ArithmeticError("Invalid arithmetic expression given: {$msg} in '{$input}'");
         }
     }
 
+    /**
+     * @return numeric-string
+     */
     public function __toString(): string
     {
         return $this->value;
@@ -49,7 +49,7 @@ final class Number
         return $this->bc('add', $input);
     }
 
-    public function divide(int|float|self|string $input, bool $invert = false): self
+    public function div(int|float|self|string $input, bool $invert = false): self
     {
         return $this->bc('div', $input, $invert);
     }
@@ -77,17 +77,17 @@ final class Number
      */
     public function intval(bool $strict = true): int|string
     {
-        $result = $this->format(0);
+        $result = (int) $this->format();
 
-        return $strict ? (int) $result : $result;
+        return $strict ? $result : (string) $result;
     }
 
-    public function modulus(int|float|self|string $input): self
+    public function mod(int|float|self|string $input): self
     {
         return $this->bc('mod', $input);
     }
 
-    public function multiply(int|float|self|string $input): self
+    public function mul(int|float|self|string $input): self
     {
         return $this->bc('mul', $input);
     }
@@ -97,37 +97,38 @@ final class Number
         return $this->bc('pow', $exponent);
     }
 
-    public function ruleOf3(int|float|self|string $against): self
-    {
-        return new self();
-    }
-
     /**
-     * @return self[]
+     * @return list<array{0:self,1:int}>
      */
     public function split(int $installments): array
     {
+        if ($installments < 2) {
+            throw new ArithmeticError("Cannot split {$this} by {$installments}");
+        }
+
         $delta   = sprintf('1%s', str_pad('', $this->scale, '0'));
-        $integer = (new self($this, 0))->multiply($delta);
-        $modulus = $integer->modulus($installments);
-        $result  = new self($modulus->subtract($integer, true)->divide($installments), $this->scale);
+        $integer = (new self($this, 0))->mul($delta);
+        $modulus = $integer->mod($installments);
+        $result  = new self($modulus->sub($integer, true)->div($installments), $this->scale);
 
         // prettier-ignore
         return [
-            $result->add($modulus)->divide($delta),
-            $result->divide($delta),
+            [$result->add($modulus)->div($delta), 1],
+            [$result->div($delta), $installments - 1],
         ];
     }
 
-    public function sqrt(int|float|null|self|string $input = null, ?int $scale = null): self
+    public function sqrt(): self
     {
-        $input ??= $this->value;
-        $scale ??= $this->scale;
+        if ($this->intval() < 0) {
+            throw new ArithmeticError('It is not possible to square a value of a negative number.');
+        }
 
-        return new self(bcsqrt($this->normalizeInput($input), $scale), $scale);
+        /** @psalm-suppress PossiblyNullArgument */
+        return new self(bcsqrt($this->value, $this->scale), $this->scale);
     }
 
-    public function subtract(int|float|self|string $input, bool $invert = false): self
+    public function sub(int|float|self|string $input, bool $invert = false): self
     {
         return $this->bc('sub', $input, $invert);
     }
@@ -152,39 +153,42 @@ final class Number
     /**
      * @return numeric-string
      */
-    private function format(?int $scale = null): string
+    private function format(mixed $input = null): string
     {
         /** @var numeric-string */
-        return number_format((float) $this->value, $scale ?? $this->scale, '.', '');
+        return number_format((float) ($input ?? $this->value), $this->scale, '.', '');
     }
 
     /**
      * @return numeric-string
      */
-    private function normalizeInput(int|float|null|self|string $input, bool $ctor = false): string
+    private function normalizeInput(int|float|self|string $input): string
     {
-        $input = preg_replace('/\\s+/', '', (string) $input);
-
-        if (!$input || is_numeric($input)) {
-            return (string) ((float) $input);
+        if ($input instanceof self || is_numeric($input)) {
+            /** @var numeric-string */
+            return "{$input}";
         }
+
+        $input = preg_replace('/\\s+/', '', "{$input}") ?: '0';
 
         if (1 !== preg_match(self::REGEXP_VALID_INPUT, $input)) {
             throw new ArithmeticError(
-                "Argument #1 (\$input) must be a valid arithmetic expression: '{$input}' given"
+                "Argument #1 (\$input) must be a valid arithmetic expression: '{$this->input}' given"
             );
         }
 
         $input = str_replace('^', '**', $input);
 
-        if ('%' === substr($input, -1)) {
-            /** @var numeric-string */
-            return (string) $this->multiply(substr($input, 0, -1))->divide(100);
+        if (str_ends_with($input, '%')) {
+            return $this->mul(substr($input, 0, -1))
+                ->div(100)
+                ->floatval(false)
+            ;
         }
 
-        eval("\$value = {$input};");
+        eval("\$input = {$input};"); // NOSONAR
 
         /** @var numeric-string */
-        return (string) $value;
+        return "{$input}";
     }
 }

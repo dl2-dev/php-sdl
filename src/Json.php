@@ -2,133 +2,140 @@
 
 namespace DL2\SDL;
 
+use ArrayAccess;
+use ArrayObject;
 use IteratorAggregate;
-use JsonException;
-use SplFixedArray;
+use OutOfBoundsException;
+use Stringable;
 use Traversable;
+use ValueError;
 
-final class Json implements IteratorAggregate
+final class Json implements IteratorAggregate, Stringable
 {
-    private const FLAGS_DECODE = 1;
-    private const FLAGS_ENCODE = 0;
+    private const DECODE_FLAGS  = 1;
+    private const ENCODE_FLAGS  = 0;
+    private const FLAGS_COMMON  = JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR;
+    private const FLAGS_DEFAULT = [
+        self::DECODE_FLAGS => self::FLAGS_COMMON | JSON_BIGINT_AS_STRING,
+        self::ENCODE_FLAGS => self::FLAGS_COMMON | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION,
+    ];
 
-    private ?string $filename = null;
-    private SplFixedArray $flags;
-    private mixed $json = null;
-
-    public function __construct(mixed $json = null)
+    /**
+     * Create a cool Json object.
+     *
+     * @note(douggr): if the given $json is a string, it MUST be a valid json string. e.g.:
+     *      'foo': JsonException is thrown (expects '"foo"')
+     *      '{ }': ok
+     *      '[ ]': ok
+     */
+    public function __construct(private mixed $json = '{}')
     {
-        $this->flags = new SplFixedArray(2);
+        switch (\gettype($json)) {
+            // @codeCoverageIgnoreStart
+            case 'boolean':
+            case 'integer':
+            case 'double':
+            case 'NULL':
+                $json = $this->encode($json);
 
-        // prettier-ignore
-        $this
-            ->setDecodeFlags(JSON_BIGINT_AS_STRING)
-            ->setEncodeFlags(JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION)
-        ;
+            // no break
+            case 'string':
+                /** @var mixed */
+                $json = $this->decode("{$json}");
 
-        if ($json) {
-            $this->decode($this->encode($json));
+            // @codeCoverageIgnoreEnd
+            // no break
+            default:
+                if (\is_array($json) || \is_object($json)) {
+                    $this->json = new ArrayObject($json, ArrayObject::ARRAY_AS_PROPS);
+                } else {
+                    $this->json = $json;
+                }
         }
     }
 
-    public function __get(string $who): mixed
+    public function __get(string $name): mixed
     {
-        /** @psalm-suppress MixedPropertyFetch */
-        return self::wrapError(fn (): mixed => $this->json->{$who});
+        $this->throwValueErrorOnInvalidJson($name, 'read');
+
+        /** @psalm-suppress MixedMethodCall */
+        return Runtime::wrapError(fn (): mixed => $this->json->offsetGet($name), OutOfBoundsException::class);
     }
 
-    public function __set(string $who, mixed $data): void
+    public function __set(string $name, mixed $value): void
     {
-        self::wrapError(fn (): mixed => ($this->json->{$who} = $data));
+        $this->throwValueErrorOnInvalidJson($name, 'assign');
+
+        /** @psalm-suppress MixedMethodCall */
+        $this->json->offsetSet($name, $value);
     }
 
-    public function decode(string $json, int $flags = 0): self
+    public function __toString(): string
     {
-        $this->json = json_decode($json, null, 512, $this->getDecodeFlags($flags));
-
-        return $this;
+        return $this->encode($this->json);
     }
 
-    public function encode(mixed $data = null, int $flags = 0): string
+    public function decode(string|Stringable $json, int $flags = 0): mixed
     {
-        return json_encode($data ?? $this->json, $this->getEncodeFlags($flags));
+        return json_decode("{$json}", flags: $this->getFlags($flags, self::DECODE_FLAGS));
     }
 
-    public static function fromString(string $json, int $flags = 0): self
+    public function encode(mixed $value = null, int $flags = 0): string
     {
-        return (new self())->setDecodeFlags($flags)->decode($json);
-    }
-
-    public function getDecodeFlags(int $flags = 0): int
-    {
-        return $this->getFlags(self::FLAGS_DECODE) | $flags;
-    }
-
-    public function getEncodeFlags(int $flags = 0): int
-    {
-        return $this->getFlags() | $flags;
-    }
-
-    public function getFilename(): ?string
-    {
-        return $this->filename;
+        return json_encode($value, $this->getFlags($flags));
     }
 
     public function getIterator(): Traversable
     {
-        yield from (array) $this->getJson();
+        if ($this->json instanceof ArrayObject) {
+            yield from $this->json->getIterator();
+        } else {
+            yield [$this->json];
+        }
     }
 
-    public function getJson(): mixed
+    /**
+     * Reads a json file into a Json object.
+     *
+     * @param non-empty-string $filename
+     */
+    public static function read(string $filename): self
     {
-        return $this->json;
+        return new self(FileObject::read($filename));
     }
 
-    public static function read(string $filename, int $flags = 0): self
+    /**
+     * Write data to a json file.
+     *
+     * @param non-empty-string $filename
+     */
+    public function write(string $filename, bool $pretty = true): int
     {
-        return self::fromString(FileObject::read($filename))->setFilename($filename);
+        return FileObject::write(
+            $filename,
+            "{$this->encode($this->json, $pretty ? JSON_PRETTY_PRINT : 0)}\n"
+        );
     }
 
-    public function save(?string $filename = null, mixed $data = null, int $flags = 0): self
+    /**
+     * @param self::DECODE_FLAGS|self::ENCODE_FLAGS $type
+     */
+    private function getFlags(int $flags = 0, int $type = self::ENCODE_FLAGS): int
     {
-        /** @psalm-suppress PossiblyNullArgument */
-        FileObject::write($filename ?? $this->filename, $this->encode($data, $flags | JSON_PRETTY_PRINT));
-
-        return $this;
+        return self::FLAGS_DEFAULT[$type] | $flags;
     }
 
-    public function setDecodeFlags(int $flags = 0): self
+    /**
+     * @template T as 'read'|'assign'
+     *
+     * @param T $type
+     */
+    private function throwValueErrorOnInvalidJson(string $name, string $type): void
     {
-        return $this->setFlags($flags, self::FLAGS_DECODE);
-    }
-
-    public function setEncodeFlags(int $flags = 0): self
-    {
-        return $this->setFlags($flags);
-    }
-
-    public function setFilename(string $filename): self
-    {
-        $this->filename = FileObject::resolveFilename($filename);
-
-        return $this;
-    }
-
-    private function getFlags(int $type = self::FLAGS_ENCODE): int
-    {
-        /** @var int */
-        return $this->flags[$type];
-    }
-
-    private function setFlags(int $flags = 0, int $type = self::FLAGS_ENCODE): self
-    {
-        $this->flags[$type] = $flags | JSON_THROW_ON_ERROR;
-
-        return $this;
-    }
-
-    private static function wrapError(callable $fn): mixed
-    {
-        return Runtime::wrapError($fn, JsonException::class);
+        if (!($this->json instanceof ArrayAccess)) {
+            throw new ValueError(
+                sprintf('Attempt to %s property "%s" on %s', $type, $name, \gettype($this->json))
+            );
+        }
     }
 }
