@@ -2,48 +2,18 @@
 
 namespace DL2\SDL;
 
+use LogicException;
+
 trait JsonSingleton
 {
-    private static mixed $instance = null;
-    private Json $json;
+    use Singleton;
 
-    private function __construct()
+    private static function createInstance(): Json
     {
-        $this->json = new Json();
-
-        if (\defined('static::FILENAME')) {
-            $this->json = Json::read(static::FILENAME);
-        }
-    }
-
-    public function __get(string $who): mixed
-    {
-        return $this->json->{$who};
-    }
-
-    public static function get(string $who, bool $objectAsArray = false): mixed
-    {
-        /** @var mixed */
-        $result = self::getInstance()->{$who};
-
-        if ($objectAsArray) {
-            return json_decode(json_encode($result), true);
+        if (!\defined('self::FILENAME')) {
+            throw new LogicException('string const FILENAME is not defined in ' . self::class);
         }
 
-        return $result;
-    }
-
-    public static function getInstance(): self
-    {
-        if (null === static::$instance) {
-            static::$instance = new static();
-        }
-
-        return static::$instance;
-    }
-
-    public function getIterator()
-    {
-        yield from $this->json;
+        return Json::read(self::FILENAME);
     }
 }

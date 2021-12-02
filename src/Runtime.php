@@ -2,6 +2,7 @@
 
 namespace DL2\SDL;
 
+use DateTimeInterface;
 use ErrorException;
 use Throwable;
 
@@ -12,9 +13,9 @@ final class Runtime
         return (string) DL2_SDL_CWD;
     }
 
-    public static function getElapsedTime(): string
+    public static function getElapsedTime(DateTime|DateTimeInterface|int|string $since = 'now'): string
     {
-        return (new DateTime())->diff()->format('%ad %Hh%Im%Ss');
+        return (new DateTime($since))->diff()->format('%ad %Hh%Im%Ss');
     }
 
     public static function rusage(bool $current = true): array
@@ -23,7 +24,7 @@ final class Runtime
             return getrusage();
         }
 
-        /** @var array<string,int> */
+        /** @var array<string,numeric-string> */
         return DL2_SDL_RUSAGE_INIT;
     }
 
@@ -33,22 +34,28 @@ final class Runtime
     }
 
     /**
-     * @param class-string<Throwable> $class
+     * @param callable():mixed         $fn
+     * @param class-string<Throwable>  $class
+     * @param callable(Throwable):void $onError
      */
-    public static function wrapError(callable $fn, ?string $class): mixed
+    public static function wrapError(callable $fn, ?string $class = null, ?callable $onError = null): mixed
     {
-        set_error_handler(function (int $code, string $message, string $filename, int $line): bool {
-            throw new ErrorException($message, $code, E_ERROR, $filename, $line);
+        set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline): bool {
+            throw new ErrorException($errstr, $errno, E_ERROR, $errfile, $errline); // NOSONAR
         }, E_ALL);
 
         try {
             return $fn();
-        } catch (ErrorException $err) {
-            if ($class) {
-                $err = new $class($err->getMessage(), $err->getCode());
+        } catch (ErrorException $e) {
+            if ($onError) {
+                $onError($e);
             }
 
-            throw $err;
+            if ($class) {
+                $e = new $class($e->getMessage(), $e->getCode());
+            }
+
+            throw $e;
         } finally {
             restore_error_handler();
         }

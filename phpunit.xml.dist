@@ -13,13 +13,14 @@
   stopOnFailure="false"
   verbose="true"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
 >
   <coverage includeUncoveredFiles="true" processUncoveredFiles="true">
     <include>
       <directory>src</directory>
-      <directory>tests</directory>
     </include>
+    <exclude>
+      <file>src/bootstrap.php</file>
+    </exclude>
     <report>
       <clover outputFile="coverage/clover.xml" />
     </report>
@@ -30,6 +31,6 @@
   </logging>
 
   <testsuite name="default test suite">
-    <directory>tests</directory>
+    <directory suffix="Test.php">tests</directory>
   </testsuite>
 </phpunit>
