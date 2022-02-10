@@ -84,6 +84,20 @@ final class NumberTest extends TestCase
         (new Number(200))->split(1);
     }
 
+    public function testIssue16(): void
+    {
+        for ($scale = 0; $scale < 8; ++$scale) {
+            $stub = new Number(15.8, $scale);
+
+            for ($j = 2; $j < 50; ++$j) {
+                [[$first], [$other, $i]] = $stub->split($j);
+                $test                    = (new Number($other, $scale))->mul($i)->add($first);
+
+                static::assertSame("{$test}", "{$stub}");
+            }
+        }
+    }
+
     public function testSplit(): void
     {
         for ($scale = 0; $scale < 8; ++$scale) {
