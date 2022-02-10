@@ -107,7 +107,7 @@ final class Number implements Stringable
         }
 
         $delta   = sprintf('1%s', str_pad('', $this->scale, '0'));
-        $integer = (new self($this, 0))->mul($delta);
+        $integer = new self(preg_replace('/\\D+/', '', $this->value), 0);
         $modulus = $integer->mod($installments);
         $result  = new self($modulus->sub($integer, true)->div($installments), $this->scale);
 
