@@ -13,7 +13,7 @@ final class Runtime
         return (string) DL2_SDL_CWD;
     }
 
-    public static function getElapsedTime(DateTime|DateTimeInterface|int|string $since = 'now'): string
+    public static function getElapsedTime(int|string|DateTime|DateTimeInterface $since = 'now'): string
     {
         return (new DateTime($since))->diff()->format('%ad %Hh%Im%Ss');
     }

@@ -1,9 +1,12 @@
 *.cache
+*.devbox
+*.dist
 *.empty
 *.git
 *.gitignore
 *.hbs
-*.lock
+*.ini
+*.json
 *.log
 *.prettierignore
 *.properties
@@ -18,5 +21,6 @@
 /build
 /coverage
 /dist
+/Dockerfile
 /node_modules
 /vendor

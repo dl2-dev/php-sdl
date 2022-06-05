@@ -10,6 +10,9 @@ use Stringable;
 use Traversable;
 use ValueError;
 
+/**
+ * @template-implements IteratorAggregate<mixed>
+ */
 final class Json implements IteratorAggregate, Stringable
 {
     private const DECODE_FLAGS  = 1;
@@ -46,6 +49,7 @@ final class Json implements IteratorAggregate, Stringable
             // @codeCoverageIgnoreEnd
             // no break
             default:
+                /** @psalm-suppress PossiblyInvalidArgument */
                 if (\is_array($json) || \is_object($json)) {
                     $this->json = new ArrayObject($json, ArrayObject::ARRAY_AS_PROPS);
                 } else {

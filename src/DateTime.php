@@ -41,8 +41,8 @@ final class DateTime implements JsonSerializable, Stringable
     private string $format = self::ISO8601_MYSQL;
 
     public function __construct(
-        self|DateTimeInterface|int|string $datetime = 'now',
-        null|DateTimeZone|string $timezone = self::TIMEZONE
+        int|string|self|DateTimeInterface $datetime = 'now',
+        null|string|DateTimeZone $timezone = self::TIMEZONE
     ) {
         if (\is_int($datetime)) {
             $datetime = "@{$datetime}";
@@ -59,16 +59,15 @@ final class DateTime implements JsonSerializable, Stringable
         }
     }
 
-    public function __call(string $method, array $params): int|DateTimeZone|self
+    public function __call(string $method, array $params): int|self|DateTimeZone
     {
-        /** @var mixed */
+        /** @var DateTimeInterface|DateTimeZone|int */
         $result = \call_user_func_array([$this->datetime, $method], $params);
 
         if ($result instanceof DateTimeInterface) {
             return $this->create($result);
         }
 
-        /** @var DateTimeZone|int */
         return $result;
     }
 
@@ -77,7 +76,7 @@ final class DateTime implements JsonSerializable, Stringable
         return $this->format();
     }
 
-    public function add(DateInterval|string $spec): self
+    public function add(string|DateInterval $spec): self
     {
         return $this->create($this->datetime->add(self::mixedToDateInterval($spec)));
     }
@@ -93,7 +92,7 @@ final class DateTime implements JsonSerializable, Stringable
     public static function createFromFormat(
         string $format,
         string $datetime,
-        DateTimeZone|string|null $timezone = null
+        null|string|DateTimeZone $timezone = null
     ): self {
         $timezone = self::mixedToTimeZone($timezone);
 
@@ -114,7 +113,7 @@ final class DateTime implements JsonSerializable, Stringable
         return new self($datetime, $timezone);
     }
 
-    public function diff(self|DateTimeInterface|null|int|string $target = null): DateInterval
+    public function diff(null|int|string|self|DateTimeInterface $target = null): DateInterval
     {
         return $this->datetime->diff($this->create($target ?? Runtime::startedAt())->datetime);
     }
@@ -143,16 +142,16 @@ final class DateTime implements JsonSerializable, Stringable
     }
 
     /**
-     * @template TParam as int|string|null
+     * @template TParam as null|int|string
      *
      * @psalm-param TParam $year
      * @psalm-param TParam $month
      * @psalm-param TParam $day
      */
     public function setDate(
-        int|string|null $year = null,
-        int|string|null $month = null,
-        int|string|null $day = null
+        null|int|string $year = null,
+        null|int|string $month = null,
+        null|int|string $day = null
     ): self {
         [$y, $m, $d] = explode('.', $this->format('Y.m.d'));
 
@@ -170,12 +169,12 @@ final class DateTime implements JsonSerializable, Stringable
         return $this;
     }
 
-    public function setTimezone(null|DateTimeZone|string $timezone = self::TIMEZONE): self
+    public function setTimezone(null|string|DateTimeZone $timezone = self::TIMEZONE): self
     {
         return $this->create($this->datetime->setTimezone(self::mixedToTimeZone($timezone)));
     }
 
-    public function sub(DateInterval|string $spec): self
+    public function sub(string|DateInterval $spec): self
     {
         return $this->create($this->datetime->sub(self::mixedToDateInterval($spec)));
     }
@@ -200,12 +199,12 @@ final class DateTime implements JsonSerializable, Stringable
         return $next;
     }
 
-    private function create(self|DateTimeInterface|int|string $datetime): self
+    private function create(int|string|self|DateTimeInterface $datetime): self
     {
         return (new self($datetime, $this->getTimezone()))->setFormat($this->format);
     }
 
-    private static function mixedToDateInterval(DateInterval|string $spec): DateInterval
+    private static function mixedToDateInterval(string|DateInterval $spec): DateInterval
     {
         if (\is_string($spec)) {
             $spec = new DateInterval(strtoupper($spec));
@@ -214,7 +213,7 @@ final class DateTime implements JsonSerializable, Stringable
         return $spec;
     }
 
-    private static function mixedToTimeZone(DateTimeZone|string|null $timezone = self::TIMEZONE): DateTimeZone
+    private static function mixedToTimeZone(null|string|DateTimeZone $timezone = self::TIMEZONE): DateTimeZone
     {
         if (!$timezone) {
             $timezone = self::TIMEZONE;

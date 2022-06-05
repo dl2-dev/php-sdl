@@ -3,6 +3,7 @@
 namespace DL2\SDL;
 
 use ArithmeticError;
+use NumberFormatter;
 use ParseError;
 use Stringable;
 
@@ -25,7 +26,7 @@ final class Number implements Stringable
      * as '10+5' or '10*(2 +2)', but note that using this approach, we apply
      * bc functions **after** PHP's internal calculation.
      */
-    public function __construct(private int|float|self|string $input = 0, private int $scale = 2)
+    public function __construct(private float|int|string|self $input = 0, private int $scale = 2)
     {
         try {
             $this->value = $this->format($this->normalizeInput($input));
@@ -44,12 +45,12 @@ final class Number implements Stringable
         return $this->value;
     }
 
-    public function add(int|float|self|string $input): self
+    public function add(float|int|string|self $input): self
     {
         return $this->bc('add', $input);
     }
 
-    public function div(int|float|self|string $input, bool $invert = false): self
+    public function div(float|int|string|self $input, bool $invert = false): self
     {
         return $this->bc('div', $input, $invert);
     }
@@ -82,17 +83,23 @@ final class Number implements Stringable
         return $strict ? $result : (string) $result;
     }
 
-    public function mod(int|float|self|string $input): self
+    public function localize(string $locale, int $style = NumberFormatter::DECIMAL): string
+    {
+        /** @psalm-suppress ImpureMethodCall */
+        return (new NumberFormatter($locale, $style))->format($this->floatval());
+    }
+
+    public function mod(float|int|string|self $input): self
     {
         return $this->bc('mod', $input);
     }
 
-    public function mul(int|float|self|string $input): self
+    public function mul(float|int|string|self $input): self
     {
         return $this->bc('mul', $input);
     }
 
-    public function pow(int|float|self|string $exponent): self
+    public function pow(float|int|string|self $exponent): self
     {
         return $this->bc('pow', $exponent);
     }
@@ -128,7 +135,7 @@ final class Number implements Stringable
         return new self(bcsqrt($this->value, $this->scale), $this->scale);
     }
 
-    public function sub(int|float|self|string $input, bool $invert = false): self
+    public function sub(float|int|string|self $input, bool $invert = false): self
     {
         return $this->bc('sub', $input, $invert);
     }
@@ -136,7 +143,7 @@ final class Number implements Stringable
     /**
      * @param TBCMathFn $fn
      */
-    private function bc(string $fn, int|float|self|string $input, bool $invert = false): self
+    private function bc(string $fn, float|int|string|self $input, bool $invert = false): self
     {
         $args = [$this->value, $this->normalizeInput($input)];
 
@@ -146,8 +153,7 @@ final class Number implements Stringable
 
         $args += [2 => $this->scale];
 
-        /** @psalm-suppress MixedArgument */
-        return new self(\call_user_func_array("\\bc{$fn}", $args), $this->scale);
+        return new self((string) \call_user_func_array("\\bc{$fn}", $args), $this->scale);
     }
 
     /**
@@ -162,7 +168,7 @@ final class Number implements Stringable
     /**
      * @return numeric-string
      */
-    private function normalizeInput(int|float|self|string $input): string
+    private function normalizeInput(float|int|string|self $input): string
     {
         if ($input instanceof self || is_numeric($input)) {
             /** @var numeric-string */

@@ -29,21 +29,27 @@ final class DateTimeTest extends TestCase
     public function dataProviderAdd(): Generator
     {
         yield [new DateInterval('P1M')];
+
         yield ['P1M'];
     }
 
     public function dataProviderCtorArg0(): Generator
     {
         yield [new DateTime(self::TESTING_DATETIME)];
+
         yield [new \DateTime(self::TESTING_DATETIME)];
+
         yield [self::TESTING_DATETIME];
+
         yield [self::TESTING_TIMESTAMP];
     }
 
     public function dataProviderCtorArg1(): Generator
     {
         yield [new DateTimeZone('America/Sao_Paulo')];
+
         yield ['America/Sao_Paulo'];
+
         yield [null];
     }
 
@@ -118,7 +124,7 @@ final class DateTimeTest extends TestCase
     /**
      * @dataProvider dataProviderCtorArg0
      */
-    public function testCtorArg0(DateTime|DateTimeInterface|int|string $datetime): void
+    public function testCtorArg0(int|string|DateTime|DateTimeInterface $datetime): void
     {
         $test = new DateTime($datetime);
         static::assertSame($test->format(DateTime::DATE), self::$stub->format(DateTime::DATE));
@@ -142,7 +148,7 @@ final class DateTimeTest extends TestCase
     /**
      * @dataProvider dataProviderCtorArg0
      */
-    public function testDiff(DateTime|DateTimeInterface|null|int|string $target): void
+    public function testDiff(null|int|string|DateTime|DateTimeInterface $target): void
     {
         $test = self::$stub->removeMonths(13)->diff($target);
         static::assertSame(1, $test->y);
@@ -150,8 +156,6 @@ final class DateTimeTest extends TestCase
 
     public function testJsonSerializable(): void
     {
-        $test = (string) self::$stub;
-
         static::assertJson(json_encode(self::$stub));
     }
 

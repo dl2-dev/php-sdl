@@ -2,7 +2,7 @@
   "name": "dl2/sdl",
   "description": "Collection of common and useful assets",
   "license": "Unlicense",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "require": {
     "php": ">=8.1"
   },
@@ -11,9 +11,9 @@
     "ext-mbstring": "*",
     "ext-xml": "*",
     "ergebnis/composer-normalize": "^2",
-    "friendsofphp/php-cs-fixer": "^3",
-    "phpunit/phpunit": "^9",
-    "squizlabs/php_codesniffer": "^3",
+    "friendsofphp/php-cs-fixer": "^3.8",
+    "phpunit/phpunit": "^9.5",
+    "squizlabs/php_codesniffer": "^3.6",
     "vimeo/psalm": "dev-master"
   },
   "autoload": {
@@ -21,7 +21,8 @@
       "DL2\\SDL\\": "src"
     },
     "files": [
-      "src/bootstrap.php"
+      "src/bootstrap.php",
+      "src/functions/string.php"
     ]
   },
   "autoload-dev": {
@@ -30,6 +31,9 @@
     }
   },
   "config": {
+    "allow-plugins": {
+      "ergebnis/composer-normalize": true
+    },
     "sort-packages": true
   },
   "scripts": {

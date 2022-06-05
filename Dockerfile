@@ -1,20 +1,17 @@
-# FROM php:7.2-fpm
-# FROM php:7.3-fpm
-# FROM php:7.4-fpm
-FROM php:8.0-fpm
+# FROM php:7.2-cli
+# FROM php:7.3-cli
+# FROM php:7.4-cli
+# FROM php:8.0-cli
+FROM php:8.1-cli
 
 ENV DEBIAN_FRONTEND noninteractive
+ARG APP_ENV
 ARG WITH_MYSQL
 ARG WITH_PGSQL
 ARG WITH_REDIS
 ARG WITH_XDEBUG
 
 RUN apt-get update --fix-missing
-#RUN apt-get install -yq --no-install-recommends \
-#  apt-utils \
-#  build-essential \
-#  procps
-
 RUN apt-get install -yq --no-install-recommends \
   git \
   libbz2-dev \
@@ -33,6 +30,7 @@ RUN docker-php-ext-install \
   exif \
   gd \
   gmp \
+  intl \
   soap \
   sockets \
   zip
@@ -49,12 +47,6 @@ RUN if [ ! -z "$WITH_REDIS" ]; \
     ; \
   fi;
 
-RUN if [ ! -z "$WITH_XDEBUG" ]; \
-  then \
-    pecl install xdebug && docker-php-ext-enable xdebug \
-    ; \
-  fi;
-
 RUN if [ ! -z "$WITH_PGSQL" ]; \
   then \
     apt-get install -y --no-install-recommends libpq5 libpq-dev \
@@ -67,3 +59,10 @@ RUN apt-get -yq purge $(dpkg --get-selections | awk '{print $1}' | grep '\-dev$'
   && apt-get -yq autoremove --purge \
   && apt-get -yq clean \
   && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sLo /usr/local/bin/composer https://getcomposer.org/download/latest-2.x/composer.phar \
+  && chmod +x /usr/local/bin/composer
+
+COPY ./php-overrides.ini /usr/local/etc/php/conf.d/99-overrides.ini
+
+WORKDIR /var/www
